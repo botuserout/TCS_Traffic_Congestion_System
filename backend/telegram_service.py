@@ -1,8 +1,8 @@
 import os
 import requests
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8837015866:AAGkEkLK2kZaUh1e6OlrpQe1GyLX1Mun8zE")
-DEFAULT_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+TELEGRAM_BOT_TOKEN = os.getenv("TCS_TELEGRAM_BOT_TOKEN", "")
+DEFAULT_CHAT_ID = os.getenv("TCS_TELEGRAM_CHAT_ID", "")
 
 
 def get_latest_chat_id(bot_token=None):

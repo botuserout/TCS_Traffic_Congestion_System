@@ -95,9 +95,10 @@ def seed_default_admin(hash_func):
     conn.close()
 
     if count == 0:
-        admin_pass_hash = hash_func("Admin@TCS123")
+        admin_password = os.environ.get("TCS_DEFAULT_ADMIN_PASSWORD", "Admin@TCS123")
+        admin_pass_hash = hash_func(admin_password)
         create_user("admin", "admin@tcs.local", admin_pass_hash, role="admin")
-        print("👤 Seeded default admin user: admin@tcs.local / Admin@TCS123")
+        print("👤 Default admin account created (admin@tcs.local). Change the password after first login.")
 
 
 def save_alert(vehicle_count, latitude, longitude, map_link, image_path, email_sent):

@@ -77,7 +77,7 @@ export const AlertHistoryPage = () => {
   }, []);
 
   const getImageUrl = (imagePath: string) => {
-    const filename = imagePath.split('/').pop() || imagePath;
+    const filename = imagePath.split(/[/\\]/).pop() || imagePath;
     return `http://localhost:5001/api/alerts/images/${filename}`;
   };
 

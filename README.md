@@ -29,9 +29,7 @@ The project is split into two primary environments:
 
 ## 🚀 Getting Started
 
-### 1. Backend Setup
-
-It is recommended to run the backend in a virtual environment.
+### 1. Initial Setup (One-Time)
 
 ```bash
 # Navigate to the root directory
@@ -46,26 +44,30 @@ source venv/bin/activate
 # On Windows:
 venv\Scripts\activate
 
-# Install Python dependencies
-pip install -r backend/requirements.txt
+# Install ALL dependencies (Python backend + Node frontend)
+npm run install:all
 
-# Start the API server and AI Tracking Thread
-python backend/server.py
+# Configure your environment (copy and edit the .env file)
+# On Mac/Linux:
+cp .env.example .env
+# On Windows:
+copy .env.example .env
+# Then open .env and fill in your credentials (email password, Telegram token, etc.)
 ```
-*The backend server will run on `http://localhost:5001`.*
 
-### 2. Frontend Setup
-
-In a separate terminal, install the Node dependencies and start the Vite dev server.
+### 2. Run the Full System (Single Command)
 
 ```bash
-# Using the root package.json helper script
-npm run install:frontend
-
-# Start the frontend dashboard
+# Activate venv (if not already active), then:
 npm run dev
 ```
-*The frontend dashboard will run on `http://localhost:5173` (or `5174` depending on port availability).*
+
+This single command launches **both** the Flask backend (port 5001) and the Vite frontend (port 5173) simultaneously with color-coded output.
+
+> **Other available commands:**
+> - `npm run dev:backend` — Start only the backend API server
+> - `npm run dev:frontend` — Start only the frontend dashboard
+> - `npm run build` — Build the frontend for production
 
 ## ⚙️ Configuration
 

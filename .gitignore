@@ -1,12 +1,46 @@
+# Python
 venv/
 __pycache__/
 *.pyc
+*.pyo
+
+# AI Model Weights (large binaries)
 *.pt
+
+# Generated images
 *.jpg
 *.png
 backend/congestion_images/
+
+# Database
 backend/tcs_alerts.db
-backend/__pycache__/
+
+# macOS
 .DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Node.js
+node_modules/
 frontend/node_modules/
 frontend/dist/
+package-lock.json
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+.codex-*.log

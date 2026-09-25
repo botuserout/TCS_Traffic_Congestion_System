@@ -7,6 +7,9 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 import certifi
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env'))
 # pyrefly: ignore [missing-import]
 from flask import Flask, Response, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -22,7 +25,20 @@ from auth import hash_password, verify_password, create_token, require_auth, get
 from telegram_service import send_telegram_photo, send_telegram_message, get_latest_chat_id
 
 app = Flask(__name__)
-CORS(app)
+
+# Security: Restrict CORS to only the frontend dev server origins
+ALLOWED_ORIGINS = os.environ.get("TCS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174").split(",")
+CORS(app, origins=ALLOWED_ORIGINS)
+
+
+@app.after_request
+def add_security_headers(response):
+    """Inject security headers into every API response."""
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
 
 # Global State
 global_state = {
@@ -36,9 +52,9 @@ global_state = {
     "last_alert_time": 0,
     "settings": {
         "threshold": 10,
-        "receiver_email": "rajharsh.23.cse@iite.indusuni.ac.in, rakeshjena.23.cse@iite.indusuni.ac.in",
-        "telegram_chat_id": "8711760988",
-        "telegram_bot_token": "8837015866:AAGkEkLK2kZaUh1e6OlrpQe1GyLX1Mun8zE"
+        "receiver_email": os.environ.get("TCS_RECEIVER_EMAIL", "rajharsh.23.cse@iite.indusuni.ac.in, rakeshjena.23.cse@iite.indusuni.ac.in"),
+        "telegram_chat_id": os.environ.get("TCS_TELEGRAM_CHAT_ID", ""),
+        "telegram_bot_token": os.environ.get("TCS_TELEGRAM_BOT_TOKEN", "")
     }
 }
 
@@ -65,14 +81,14 @@ def save_congestion_image(frame):
     lon = global_state["longitude"]
     cv2.putText(frame, f"Lat: {lat}  Lon: {lon}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
-    filename = f"{folder}/congestion_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.jpg"
+    filename = os.path.join(folder, f"congestion_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.jpg")
     cv2.imwrite(filename, frame)
     print(f"📸 Image saved: {filename}")
     return filename
 
 def send_email_alert(image_path, vehicle_count):
-    sender_email = "harshrajs1k@gmail.com"
-    app_password = "xykr zwku xulz whzn".replace(" ", "")
+    sender_email = os.environ.get("TCS_SENDER_EMAIL", "harshrajs1k@gmail.com")
+    app_password = os.environ.get("TCS_EMAIL_APP_PASSWORD", "")
     raw_receiver = global_state["settings"]["receiver_email"]
     
     recipients = [e.strip() for e in raw_receiver.replace(';', ',').split(',') if e.strip()]
@@ -108,15 +124,19 @@ See attached congestion image.
 
     context = ssl.create_default_context(cafile=certifi.where())
     email_sent = False
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
-            server.login(sender_email, app_password)
-            server.send_message(msg)
-        print(f"📧 Email alert sent successfully to {receiver_string}!")
-        global_state["last_alert_time"] = time.time()
-        email_sent = True
-    except Exception as e:
-        print(f"❌ Failed to send email alert: {e}")
+
+    if not app_password:
+        print("⚠️ Email alert skipped: TCS_EMAIL_APP_PASSWORD not configured in .env")
+    else:
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+                server.login(sender_email, app_password)
+                server.send_message(msg)
+            print(f"📧 Email alert sent successfully to {receiver_string}!")
+            global_state["last_alert_time"] = time.time()
+            email_sent = True
+        except Exception as e:
+            print(f"❌ Failed to send email alert: {e}")
     
     # Dispatch Telegram Alert (Photo with Caption)
     try:
@@ -286,14 +306,15 @@ def toggle_camera():
     if active:
         # Verify the device before reporting the camera as active. Without this,
         # an unavailable webcam leaves the dashboard stuck in a misleading state.
+        cam_index = int(os.environ.get("TCS_CAMERA_INDEX", "0" if platform.system() == "Windows" else "1"))
         if platform.system() == 'Windows':
-            camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+            camera = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
         else:
-            camera = cv2.VideoCapture(0)
+            camera = cv2.VideoCapture(cam_index)
         available = camera.isOpened()
         camera.release()
         if not available:
-            message = "No camera is available at device index 0. Connect or enable a webcam, then try again."
+            message = f"No camera is available at device index {cam_index}. Connect or enable a webcam, then try again."
             global_state["camera_active"] = False
             global_state["camera_error"] = message
             return jsonify({"success": False, "camera_active": False, "error": message}), 503
@@ -376,10 +397,11 @@ def tracking_thread():
             continue
 
         if cap is None:
+            cam_index = int(os.environ.get("TCS_CAMERA_INDEX", "0" if platform.system() == "Windows" else "1"))
             if platform.system() == 'Windows':
-                cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+                cap = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
             else:
-                cap = cv2.VideoCapture(0)
+                cap = cv2.VideoCapture(cam_index)
             
         ret, frame = cap.read()
         if not ret:
