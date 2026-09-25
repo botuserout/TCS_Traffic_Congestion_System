@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchWithAuth } from '../api/client';
 import { registerUserApi } from '../api/auth';
-import { Sliders, Mail, UserPlus, CheckCircle2, AlertCircle, Shield } from 'lucide-react';
+import { Sliders, Mail, UserPlus, CheckCircle2, AlertCircle, Shield, Send, MessageSquare } from 'lucide-react';
 
 export const SettingsPage = () => {
   const { user } = useAuth();
@@ -10,9 +10,17 @@ export const SettingsPage = () => {
   // System Settings State
   const [threshold, setThreshold] = useState(10);
   const [email, setEmail] = useState('');
+  const [telegramChatId, setTelegramChatId] = useState('');
+  const [telegramBotToken, setTelegramBotToken] = useState('8837015866:AAGkEkLK2kZaUh1e6OlrpQe1GyLX1Mun8zE');
+  
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
+
+  // Telegram Test State
+  const [testingTelegram, setTestingTelegram] = useState(false);
+  const [telegramSuccess, setTelegramSuccess] = useState<string | null>(null);
+  const [telegramError, setTelegramError] = useState<string | null>(null);
 
   // New Operator State (Admin Only)
   const [newUsername, setNewUsername] = useState('');
@@ -31,6 +39,8 @@ export const SettingsPage = () => {
           const data = await res.json();
           setThreshold(data.threshold || 10);
           setEmail(data.receiver_email || '');
+          if (data.telegram_chat_id !== undefined) setTelegramChatId(data.telegram_chat_id);
+          if (data.telegram_bot_token) setTelegramBotToken(data.telegram_bot_token);
         }
       } catch (err) {
         console.error('Failed to fetch settings:', err);
@@ -48,7 +58,12 @@ export const SettingsPage = () => {
     try {
       const res = await fetchWithAuth('/api/settings', {
         method: 'POST',
-        body: JSON.stringify({ threshold, receiver_email: email })
+        body: JSON.stringify({
+          threshold,
+          receiver_email: email,
+          telegram_chat_id: telegramChatId,
+          telegram_bot_token: telegramBotToken
+        })
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -57,10 +72,36 @@ export const SettingsPage = () => {
       } else {
         setSettingsError(data.error || 'Failed to update settings');
       }
-    } catch (err) {
+    } catch {
       setSettingsError('Network error while saving settings');
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleTestTelegram = async () => {
+    setTestingTelegram(true);
+    setTelegramSuccess(null);
+    setTelegramError(null);
+
+    try {
+      const res = await fetchWithAuth('/api/telegram/test', {
+        method: 'POST',
+        body: JSON.stringify({
+          telegram_chat_id: telegramChatId,
+          telegram_bot_token: telegramBotToken
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTelegramSuccess(data.message || 'Telegram test message sent successfully!');
+      } else {
+        setTelegramError(data.error || 'Failed to send Telegram message');
+      }
+    } catch {
+      setTelegramError('Network error sending Telegram test');
+    } finally {
+      setTestingTelegram(false);
     }
   };
 
@@ -96,15 +137,15 @@ export const SettingsPage = () => {
     <div>
       <div className="page-header">
         <h1 className="page-title">System Settings & Controls</h1>
-        <p className="page-description">Configure detection thresholds, notification dispatch parameters, and access permissions.</p>
+        <p className="page-description">Configure detection thresholds, notification channels (Email & Telegram), and operator permissions.</p>
       </div>
 
       <div className="grid-2">
-        {/* System Threshold Form */}
+        {/* System Threshold & Notifications Form */}
         <div className="card-glass">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
             <Sliders size={22} color="var(--primary)" />
-            <h2 style={{ fontSize: '20px' }}>Congestion Threshold</h2>
+            <h2 style={{ fontSize: '20px' }}>Threshold & Notification Channels</h2>
           </div>
 
           {settingsSuccess && (
@@ -120,7 +161,7 @@ export const SettingsPage = () => {
               fontSize: '14px'
             }}>
               <CheckCircle2 size={16} />
-              System threshold updated successfully!
+              Settings updated successfully!
             </div>
           )}
 
@@ -158,20 +199,99 @@ export const SettingsPage = () => {
               </span>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '28px' }}>
-              <label className="form-label">Authority Notification Email</label>
+            <div className="form-group">
+              <label className="form-label">Authority Email Recipients</label>
               <div style={{ position: 'relative' }}>
                 <input
-                  type="email"
+                  type="text"
                   className="input-field"
                   style={{ paddingLeft: '40px' }}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="authority@traffic.gov"
+                  placeholder="email1@domain.com, email2@domain.com"
                   required
                 />
                 <Mail size={16} color="var(--muted)" style={{ position: 'absolute', left: '14px', top: '15px' }} />
               </div>
+              <span style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginTop: '6px' }}>
+                Separate multiple emails with commas.
+              </span>
+            </div>
+
+            {/* Telegram Settings Section */}
+            <div style={{
+              margin: '24px 0',
+              padding: '20px',
+              backgroundColor: 'var(--surface-dark)',
+              borderRadius: 'var(--rounded-md)',
+              border: '1px solid var(--surface-border)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <MessageSquare size={18} color="var(--accent-teal)" />
+                <h3 style={{ fontSize: '15px', color: 'var(--ink)' }}>Telegram Bot Channel</h3>
+              </div>
+
+              {telegramSuccess && (
+                <div style={{
+                  backgroundColor: 'var(--success-glow)',
+                  color: 'var(--success)',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--rounded-sm)',
+                  marginBottom: '14px',
+                  fontSize: '13px'
+                }}>
+                  {telegramSuccess}
+                </div>
+              )}
+
+              {telegramError && (
+                <div style={{
+                  backgroundColor: 'var(--error-glow)',
+                  color: 'var(--error)',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--rounded-sm)',
+                  marginBottom: '14px',
+                  fontSize: '13px'
+                }}>
+                  {telegramError}
+                </div>
+              )}
+
+              <div className="form-group">
+                <label className="form-label">Telegram Chat ID</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={telegramChatId}
+                  onChange={(e) => setTelegramChatId(e.target.value)}
+                  placeholder="e.g. 123456789 or -100123456789"
+                />
+                <span style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginTop: '6px' }}>
+                  Press <strong>Start</strong> in your Telegram Bot, then enter your Chat ID here.
+                </span>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Telegram Bot Token</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={telegramBotToken}
+                  onChange={(e) => setTelegramBotToken(e.target.value)}
+                  placeholder="8837015866:AAG..."
+                />
+              </div>
+
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleTestTelegram}
+                disabled={testingTelegram}
+                style={{ width: '100%', marginTop: '8px' }}
+              >
+                <Send size={14} />
+                {testingTelegram ? 'Sending Test...' : 'Send Test Telegram Message'}
+              </button>
             </div>
 
             <button type="submit" className="btn-primary" disabled={savingSettings}>

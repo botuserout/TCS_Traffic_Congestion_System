@@ -18,6 +18,7 @@ from congestion_logic import CongestionDetector
 from location_service import get_device_location
 from database import init_db, save_alert, get_all_alerts, get_user_by_email, seed_default_admin, create_user
 from auth import hash_password, verify_password, create_token, require_auth, get_current_user_from_request
+from telegram_service import send_telegram_photo, send_telegram_message, get_latest_chat_id
 
 app = Flask(__name__)
 CORS(app)
@@ -34,7 +35,9 @@ global_state = {
     "last_alert_time": 0,
     "settings": {
         "threshold": 10,
-        "receiver_email": "rajharsh.23.cse@iite.indusuni.ac.in, rakeshjena.23.cse@iite.indusuni.ac.in"
+        "receiver_email": "rajharsh.23.cse@iite.indusuni.ac.in, rakeshjena.23.cse@iite.indusuni.ac.in",
+        "telegram_chat_id": "8711760988",
+        "telegram_bot_token": "8837015866:AAGkEkLK2kZaUh1e6OlrpQe1GyLX1Mun8zE"
     }
 }
 
@@ -114,6 +117,28 @@ See attached congestion image.
     except Exception as e:
         print(f"❌ Failed to send email alert: {e}")
     
+    # Dispatch Telegram Alert (Photo with Caption)
+    try:
+        telegram_chat_id = global_state["settings"].get("telegram_chat_id")
+        telegram_bot_token = global_state["settings"].get("telegram_bot_token")
+        
+        caption = f"""🚨 <b>Traffic Congestion Alert - TCS</b>
+
+🚗 <b>Vehicle Count:</b> {vehicle_count}
+⏰ <b>Time:</b> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+📍 <b>Latitude:</b> {latitude}
+📍 <b>Longitude:</b> {longitude}
+🗺 <a href="{map_link}">View on Google Maps</a>"""
+
+        send_telegram_photo(
+            image_path=image_path,
+            caption=caption,
+            chat_id=telegram_chat_id,
+            bot_token=telegram_bot_token
+        )
+    except Exception as e:
+        print(f"❌ Failed to send Telegram alert: {e}")
+
     # Save to database regardless of email success/failure
     try:
         save_alert(
@@ -279,13 +304,44 @@ def handle_settings():
         user = get_current_user_from_request()
         if not user:
             return jsonify({"success": False, "error": "Unauthorized. Token required."}), 401
-        data = request.get_json()
+        data = request.get_json() or {}
         if 'threshold' in data:
             global_state["settings"]["threshold"] = int(data["threshold"])
         if 'receiver_email' in data:
             global_state["settings"]["receiver_email"] = str(data["receiver_email"])
+        if 'telegram_chat_id' in data:
+            global_state["settings"]["telegram_chat_id"] = str(data["telegram_chat_id"]).strip()
+        if 'telegram_bot_token' in data:
+            global_state["settings"]["telegram_bot_token"] = str(data["telegram_bot_token"]).strip()
         return jsonify({"success": True, "settings": global_state["settings"]})
     return jsonify(global_state["settings"])
+
+
+@app.route('/api/telegram/test', methods=['POST'])
+@require_auth
+def test_telegram():
+    data = request.get_json(silent=True) or {}
+    chat_id = (data.get("telegram_chat_id") or global_state["settings"].get("telegram_chat_id") or "").strip()
+    bot_token = (data.get("telegram_bot_token") or global_state["settings"].get("telegram_bot_token") or "").strip()
+
+    if not chat_id:
+        auto_id = get_latest_chat_id(bot_token)
+        if auto_id:
+            chat_id = auto_id
+            global_state["settings"]["telegram_chat_id"] = auto_id
+
+    message = """🚨 <b>Traffic Congestion System (TCS)</b>
+
+Telegram notification channel is connected successfully!
+Test message dispatched by TCS System Admin."""
+
+    res = send_telegram_message(message, chat_id=chat_id, bot_token=bot_token)
+    if res.get("ok"):
+        return jsonify({"success": True, "message": "Telegram test message sent successfully!", "result": res})
+    else:
+        err_msg = res.get("description") or res.get("error") or "Failed to send Telegram message"
+        return jsonify({"success": False, "error": err_msg, "result": res}), 200
+
 
 def tracking_thread():
     global latest_frame_jpeg, global_state
