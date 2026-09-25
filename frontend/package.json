@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:server\"",
     "dev:frontend": "vite",
-    "dev:server": "cd ../backend && python3 server.py",
+    "dev:server": "cd ../backend && python server.py",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
@@ -14,7 +14,9 @@
   "dependencies": {
     "lucide-react": "^1.28.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

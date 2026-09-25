@@ -13,7 +13,7 @@ def get_connection():
 
 
 def init_db():
-    """Create the congestion_alerts table if it doesn't exist."""
+    """Create the congestion_alerts and users tables if they don't exist."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -28,9 +28,76 @@ def init_db():
             email_sent INTEGER NOT NULL DEFAULT 0
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'operator',
+            created_at TEXT NOT NULL
+        )
+    """)
     conn.commit()
     conn.close()
     print("✅ Database initialized successfully.")
+
+
+def create_user(username, email, password_hash, role="operator"):
+    """Insert a new user record into the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        cursor.execute("""
+            INSERT INTO users (username, email, password, role, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (username, email, password_hash, role, timestamp))
+        conn.commit()
+        user_id = cursor.lastrowid
+        conn.close()
+        return user_id
+    except sqlite3.IntegrityError as e:
+        conn.close()
+        raise ValueError("Username or email already exists.") from e
+
+
+def get_user_by_email(email):
+    """Retrieve user record by email."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
+
+
+def get_user_by_id(user_id):
+    """Retrieve user record by ID."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
+
+
+def seed_default_admin(hash_func):
+    """Seed default admin account if no users exist."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM users")
+    count = cursor.fetchone()[0]
+    conn.close()
+
+    if count == 0:
+        admin_pass_hash = hash_func("Admin@TCS123")
+        create_user("admin", "admin@tcs.local", admin_pass_hash, role="admin")
+        print("👤 Seeded default admin user: admin@tcs.local / Admin@TCS123")
 
 
 def save_alert(vehicle_count, latitude, longitude, map_link, image_path, email_sent):
