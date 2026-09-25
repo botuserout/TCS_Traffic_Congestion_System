@@ -11,7 +11,7 @@ export const SettingsPage = () => {
   const [threshold, setThreshold] = useState(10);
   const [email, setEmail] = useState('');
   const [telegramChatId, setTelegramChatId] = useState('');
-  const [telegramBotToken, setTelegramBotToken] = useState('8837015866:AAGkEkLK2kZaUh1e6OlrpQe1GyLX1Mun8zE');
+  const [telegramBotToken, setTelegramBotToken] = useState('');
   
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
@@ -278,7 +278,7 @@ export const SettingsPage = () => {
                   className="input-field"
                   value={telegramBotToken}
                   onChange={(e) => setTelegramBotToken(e.target.value)}
-                  placeholder="8837015866:AAG..."
+                  placeholder="123456789:ABCdefGHIjklMNO..."
                 />
               </div>
 

@@ -5,7 +5,8 @@ from functools import wraps
 from flask import request, jsonify
 from database import get_user_by_id
 
-SECRET_KEY = "tcs_secret_jwt_key_super_secure_987213"
+import os
+SECRET_KEY = os.environ.get("TCS_JWT_SECRET", "tcs_secret_jwt_key_super_secure_987213")
 JWT_ALGORITHM = "HS256"
 TOKEN_EXPIRATION_HOURS = 24
 

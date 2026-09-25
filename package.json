@@ -7,6 +7,7 @@
     "dev": "concurrently -k -p \"[{name}]\" -n \"BACKEND,FRONTEND\" -c \"yellow,cyan\" \"python backend/server.py\" \"cd frontend && npm run dev\"",
     "dev:backend": "python backend/server.py",
     "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "pip install -r backend/requirements.txt && cd frontend && npm install",
     "install:frontend": "cd frontend && npm install",
     "build": "cd frontend && npm run build"
   },
@@ -14,4 +15,3 @@
     "concurrently": "^8.2.2"
   }
 }
-
