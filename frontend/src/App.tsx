@@ -61,10 +61,11 @@ interface CameraFeedProps {
   vehicleCount: number;
   isCongested: boolean;
   isCameraActive: boolean;
+  cameraError: string | null;
   onToggleCamera: () => void;
 }
 
-const CameraFeed = ({ vehicleCount, isCongested, isCameraActive, onToggleCamera }: CameraFeedProps) => {
+const CameraFeed = ({ vehicleCount: _vehicleCount, isCongested, isCameraActive, cameraError, onToggleCamera }: CameraFeedProps) => {
   return (
     <div className="card-code" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '450px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid var(--surface-dark-elevated)', paddingBottom: '16px' }}>
@@ -132,8 +133,8 @@ const CameraFeed = ({ vehicleCount, isCongested, isCameraActive, onToggleCamera 
         />
         <div id="video-error" style={{ textAlign: 'center', color: 'var(--on-dark-soft)' }}>
           <Camera size={48} style={{ margin: '0 auto', marginBottom: '16px', opacity: 0.5 }} />
-          <p style={{ fontFamily: 'var(--font-code)' }}>Waiting for video stream connection...</p>
-          <p style={{ fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>Ensure Python server is running on port 5001</p>
+          <p style={{ fontFamily: 'var(--font-code)' }}>{cameraError || 'Waiting for video stream connection...'}</p>
+          {!cameraError && <p style={{ fontSize: '12px', marginTop: '8px', opacity: 0.7 }}>Ensure Python server is running on port 5001</p>}
         </div>
       </div>
       
@@ -334,6 +335,7 @@ function App() {
   const [vehicleCount, setVehicleCount] = useState(0);
   const [isCongested, setIsCongested] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const [location, setLocation] = useState({ lat: 23.0225, lon: 72.5714 });
   const [showPopup, setShowPopup] = useState(false);
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
@@ -349,15 +351,21 @@ function App() {
   const handleToggleCamera = async () => {
     try {
       const newState = !isCameraActive;
-      setIsCameraActive(newState); // Optimistic UI update
-      
-      await fetch('http://localhost:5001/api/camera/toggle', {
+      const response = await fetch('http://localhost:5001/api/camera/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: newState })
       });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Unable to change the camera state.');
+      }
+      setIsCameraActive(data.camera_active);
+      setCameraError(null);
     } catch (err) {
       console.error("Failed to toggle camera:", err);
+      setIsCameraActive(false);
+      setCameraError(err instanceof Error ? err.message : 'Unable to change the camera state.');
     }
   };
 
@@ -508,8 +516,9 @@ function App() {
               <div style={{ minWidth: 0, height: '100%' }}>
                 <CameraFeed 
                   vehicleCount={vehicleCount} 
-                  isCongested={isCongested} 
+                  isCongested={isCongested}
                   isCameraActive={isCameraActive}
+                  cameraError={cameraError}
                   onToggleCamera={handleToggleCamera}
                 />
               </div>

@@ -28,6 +28,7 @@ global_state = {
     "longitude": 0.0,
     "map_link": "",
     "camera_active": False,
+    "camera_error": None,
     "last_alert_time": 0,
     "settings": {
         "threshold": 10,
@@ -143,6 +144,18 @@ def generate_frames():
         
         time.sleep(0.05) # ~20 FPS emit rate
 
+@app.route('/')
+def home():
+    return jsonify({
+        "message": "Traffic Congestion System (TCS) API Server is running",
+        "endpoints": {
+            "status": "/api/status",
+            "video_feed": "/video_feed",
+            "toggle_camera": "/api/camera/toggle"
+        },
+        "state": global_state
+    })
+
 @app.route('/video_feed')
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
@@ -168,11 +181,26 @@ def alert_image(filename):
 
 @app.route('/api/camera/toggle', methods=['POST'])
 def toggle_camera():
-    data = request.get_json()
-    if 'active' in data:
-        global_state["camera_active"] = bool(data['active'])
-        return jsonify({"success": True, "camera_active": global_state["camera_active"]})
-    return jsonify({"success": False}), 400
+    data = request.get_json(silent=True) or {}
+    if 'active' not in data:
+        return jsonify({"success": False, "error": "The active state is required."}), 400
+
+    active = bool(data['active'])
+    if active:
+        # Verify the device before reporting the camera as active. Without this,
+        # an unavailable webcam leaves the dashboard stuck in a misleading state.
+        camera = cv2.VideoCapture(0)
+        available = camera.isOpened()
+        camera.release()
+        if not available:
+            message = "No camera is available at device index 0. Connect or enable a webcam, then try again."
+            global_state["camera_active"] = False
+            global_state["camera_error"] = message
+            return jsonify({"success": False, "camera_active": False, "error": message}), 503
+
+    global_state["camera_active"] = active
+    global_state["camera_error"] = None
+    return jsonify({"success": True, "camera_active": active})
 
 @app.route('/api/settings', methods=['GET', 'POST'])
 def handle_settings():
