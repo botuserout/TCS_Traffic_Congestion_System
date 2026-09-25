@@ -278,7 +278,7 @@ export const SettingsPage = () => {
                   className="input-field"
                   value={telegramBotToken}
                   onChange={(e) => setTelegramBotToken(e.target.value)}
-                  placeholder="8837015866:AAG..."
+                  placeholder="123456789:ABCdefGHIjklMNO..."
                 />
               </div>
 
