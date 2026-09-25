@@ -37,11 +37,20 @@ It is recommended to run the backend in a virtual environment.
 # Navigate to the root directory
 cd TCS_Traffic_Congestion_System
 
+# Create a virtual environment
+python -m venv venv
+
+# Activate the virtual environment
+# On Mac/Linux:
+source venv/bin/activate
+# On Windows:
+venv\Scripts\activate
+
 # Install Python dependencies
 pip install -r backend/requirements.txt
 
 # Start the API server and AI Tracking Thread
-python3 backend/server.py
+python backend/server.py
 ```
 *The backend server will run on `http://localhost:5001`.*
 

@@ -2,6 +2,7 @@ import cv2
 import time
 import threading
 import os
+import platform
 import smtplib
 import ssl
 from email.message import EmailMessage
@@ -285,7 +286,10 @@ def toggle_camera():
     if active:
         # Verify the device before reporting the camera as active. Without this,
         # an unavailable webcam leaves the dashboard stuck in a misleading state.
-        camera = cv2.VideoCapture(0)
+        if platform.system() == 'Windows':
+            camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        else:
+            camera = cv2.VideoCapture(0)
         available = camera.isOpened()
         camera.release()
         if not available:
@@ -372,7 +376,10 @@ def tracking_thread():
             continue
 
         if cap is None:
-            cap = cv2.VideoCapture(0)
+            if platform.system() == 'Windows':
+                cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+            else:
+                cap = cv2.VideoCapture(0)
             
         ret, frame = cap.read()
         if not ret:
