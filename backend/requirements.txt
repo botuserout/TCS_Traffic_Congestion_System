@@ -35,3 +35,5 @@ ultralytics-thop==2.0.18
 urllib3==2.6.3
 plyer==2.1.0
 lapx
+PyJWT>=2.8.0
+bcrypt>=4.0.0
