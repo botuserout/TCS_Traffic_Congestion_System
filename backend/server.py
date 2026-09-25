@@ -7,9 +7,11 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 import certifi
-from dotenv import load_dotenv
-
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env'))
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env'))
+except ImportError:
+    pass
 # pyrefly: ignore [missing-import]
 from flask import Flask, Response, jsonify, request, send_from_directory
 from flask_cors import CORS
