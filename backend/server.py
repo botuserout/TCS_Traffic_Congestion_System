@@ -70,8 +70,8 @@ def save_congestion_image(frame):
     return filename
 
 def send_email_alert(image_path, vehicle_count):
-    sender_email = "harshrajs1k@gmail.com"
-    app_password = "xykr zwku xulz whzn".replace(" ", "")
+    sender_email = "jenarakeshku@gmail.com"
+    app_password = "xbxv bbkb jrdh tpwz".replace(" ", "")
     raw_receiver = global_state["settings"]["receiver_email"]
     
     recipients = [e.strip() for e in raw_receiver.replace(';', ',').split(',') if e.strip()]
@@ -341,6 +341,39 @@ Test message dispatched by TCS System Admin."""
     else:
         err_msg = res.get("description") or res.get("error") or "Failed to send Telegram message"
         return jsonify({"success": False, "error": err_msg, "result": res}), 200
+
+
+@app.route('/api/email/test', methods=['POST'])
+@require_auth
+def test_email():
+    sender_email = "jenarakeshku@gmail.com"
+    app_password = "xbxv bbkb jrdh tpwz".replace(" ", "")
+    raw_receiver = global_state["settings"]["receiver_email"]
+    
+    recipients = [e.strip() for e in raw_receiver.replace(';', ',').split(',') if e.strip()]
+    receiver_string = ", ".join(recipients) if recipients else "rajharsh.23.cse@iite.indusuni.ac.in"
+
+    msg = EmailMessage()
+    msg["Subject"] = "🚨 TCS Test Email Dispatch"
+    msg["From"] = sender_email
+    msg["To"] = receiver_string
+
+    msg.set_content(f"""
+🚨 Traffic Congestion System - Test Email
+
+This is a test notification from the TCS API Server.
+Recipients: {receiver_string}
+Time: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+""")
+
+    context = ssl.create_default_context(cafile=certifi.where())
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+            server.login(sender_email, app_password)
+            server.send_message(msg)
+        return jsonify({"success": True, "message": f"Email alert sent successfully to {receiver_string}!"})
+    except Exception as e:
+        return jsonify({"success": False, "error": f"SMTP Authentication or Network Error: {str(e)}"}), 400
 
 
 def tracking_thread():
