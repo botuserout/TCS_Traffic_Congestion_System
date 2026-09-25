@@ -249,6 +249,10 @@ a:hover {
   background-color: var(--error);
 }
 
+.stat-card.warning::before {
+  background-color: #f0a500;
+}
+
 .stat-card.success::before {
   background-color: var(--success);
 }
