@@ -63,6 +63,14 @@ npm run dev
 - **System Settings**: You can easily change the vehicle congestion threshold and the recipient email address for alerts via the **"System Settings"** button in the dashboard navigation bar. These changes are applied instantly to the running AI pipeline.
 - **Email Sender Setup**: If you wish to change the system sender email, update the `sender_email` and `app_password` credentials in `backend/server.py` (`send_email_alert` function).
 
+## 🚧 Challenges Faced
+
+During the development and architectural migration of this project, several key challenges were addressed:
+- **Real-Time Full-Stack Integration:** Separating the heavy YOLOv8 OpenCV video processing loop from the frontend without introducing latency. This was solved by streaming a multipart MJPEG feed via Flask directly to the React application.
+- **Accurate Object Tracking:** Raw object detection can cause flickering and miscounts. Integrating ByteTrack enabled consistent ID assignment for vehicles across frames, ensuring the volume metric is reliable.
+- **State Synchronization:** Decoupling the UI from the backend meant the frontend needed to poll for metric updates (vehicle count, thresholds) asynchronously so as not to block the AI inference loop.
+- **Dynamic Congestion Evaluation:** Preventing false positives (e.g. cars stopped briefly at a light). We developed a robust algorithm (`congestion_logic.py`) that requires the vehicle threshold to be exceeded for a sustained duration before triggering an alert.
+
 ## 📁 File Structure Overview
 
 ```
